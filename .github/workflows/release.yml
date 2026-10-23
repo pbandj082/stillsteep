@@ -1,0 +1,135 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to rebuild (leave empty to run Release Please)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    if: ${{ !inputs.tag }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - name: Check release credentials
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+        run: |
+          if [ -z "$RELEASE_TOKEN" ]; then
+            echo '::error::Configure the RELEASE_PLEASE_TOKEN repository secret with Contents, Pull requests, and Issues read/write permissions.'
+            exit 1
+          fi
+      - uses: googleapis/release-please-action@v5.0.0
+        id: release
+        with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          target-branch: main
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  distribute:
+    name: Build and publish macOS ZIP
+    needs: release-please
+    if: ${{ always() && !cancelled() && (needs.release-please.outputs.release_created == 'true' || (github.event_name == 'workflow_dispatch' && inputs.tag != '')) }}
+    runs-on: macos-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ needs.release-please.outputs.tag_name || inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Validate existing release
+        shell: bash
+        run: |
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo '::error::Expected a release tag such as v0.2.0.'
+            exit 1
+          fi
+          gh release view "$RELEASE_TAG" --json tagName --jq .tagName
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: refs/tags/${{ env.RELEASE_TAG }}
+          persist-credentials: false
+      - uses: subosito/flutter-action@v2.23.0
+        with:
+          channel: stable
+          flutter-version: '3.47.7'
+          cache: true
+      - name: Verify application version
+        shell: bash
+        run: |
+          version="$(cat version.txt)"
+          test "$RELEASE_TAG" = "v$version"
+          ruby -ryaml -e 'abort "App version does not match tag" unless YAML.load_file("app/pubspec.yaml")["version"].split("+").first == ARGV[0]' "$version"
+      - name: Resolve workspace dependencies
+        run: flutter pub get --enforce-lockfile
+      - name: Check formatting and analyze
+        run: |
+          dart format --output=none --set-exit-if-changed app/lib packages
+          flutter analyze --no-pub --fatal-infos
+      - name: Build macOS app
+        working-directory: app
+        shell: bash
+        run: |
+          flutter build macos --release --no-pub --config-only \
+            --build-name="${RELEASE_TAG#v}" --build-number="$GITHUB_RUN_NUMBER"
+          xcodebuild \
+            -workspace macos/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -derivedDataPath build/macos \
+            ARCHS="$(uname -m)" ONLY_ACTIVE_ARCH=YES \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+      - name: Package application
+        shell: bash
+        run: |
+          app_path='app/build/macos/Build/Products/Release/stillsteep.app'
+          test -d "$app_path"
+          # Ad-hoc signing supports local execution; this is not Developer ID signing.
+          codesign --force --deep --sign - "$app_path"
+          codesign --verify --deep --strict "$app_path"
+          mkdir -p dist
+          artifact="stillsteep-${RELEASE_TAG}-macos-$(uname -m).zip"
+          ditto -c -k --sequesterRsrc --keepParent "$app_path" "dist/$artifact"
+          (cd dist && shasum -a 256 "$artifact" > "$artifact.sha256")
+          cat > dist/DISTRIBUTION.txt <<'NOTICE'
+          This build is ad-hoc signed, not Developer ID signed or notarized by Apple.
+          macOS Gatekeeper may block opening it.
+          The filename identifies the supported CPU architecture.
+          Rust and other shell tools must be installed separately on your Mac.
+          NOTICE
+      - name: Upload assets and publish release
+        shell: bash
+        run: |
+          gh release upload "$RELEASE_TAG" dist/* --clobber
+          gh release view "$RELEASE_TAG" --json body --jq .body > "$RUNNER_TEMP/release-notes.md"
+          if ! grep -Fq '<!-- stillsteep-distribution -->' "$RUNNER_TEMP/release-notes.md"; then
+            cat >> "$RUNNER_TEMP/release-notes.md" <<'NOTICE'
+
+          <!-- stillsteep-distribution -->
+          ### macOS download
+
+          The ZIP is ad-hoc signed, but is **not Developer ID signed or notarized**.
+          macOS Gatekeeper may block it. Check the architecture in the filename.
+          SHA-256 checksums are attached. Rust and shell tools are not bundled.
+          NOTICE
+          fi
+          gh release edit "$RELEASE_TAG" --notes-file "$RUNNER_TEMP/release-notes.md" --draft=false

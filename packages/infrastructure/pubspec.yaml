@@ -1,0 +1,11 @@
+name: stillsteep_infrastructure
+description: Persistence and platform integrations for Stillsteep.
+publish_to: none
+version: 0.1.0
+resolution: workspace
+
+environment:
+  sdk: ^3.13.5
+
+dependencies:
+  stillsteep_application: ^0.1.0

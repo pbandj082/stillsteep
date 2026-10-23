@@ -1,0 +1,70 @@
+{
+  "verified_on": "2026-10-23",
+  "sources": [
+    {
+      "repository": "https://github.com/flutter/agent-plugins",
+      "revision": "f813a46b18456a20f37eb5784c091b7d945c3b4b",
+      "provenance": "official",
+      "license": "BSD-3-Clause",
+      "license_file": "licenses/flutter-agent-plugins.txt",
+      "skills": [
+        {
+          "name": "flutter-add-widget-test",
+          "source_path": "skills/flutter-add-widget-test",
+          "files": {
+            "SKILL.md": "6c449ebd844e331e661b12630b6ad2a218e84d1bd8ea8377ba9dbd62ffe2798a"
+          }
+        },
+        {
+          "name": "flutter-build-responsive-layout",
+          "source_path": "skills/flutter-build-responsive-layout",
+          "files": {
+            "SKILL.md": "c7a5d18071c625137cad2def9b13f3579d9bdf0aae29621a1825f12b560394c0"
+          }
+        },
+        {
+          "name": "flutter-fix-layout-issues",
+          "source_path": "skills/flutter-fix-layout-issues",
+          "files": {
+            "SKILL.md": "e82c82b4245ef502bd93bc543d4f5968f4ee8043fa7556ffebcb34f30651fc9b"
+          }
+        },
+        {
+          "name": "flutter-setup-declarative-routing",
+          "source_path": "skills/flutter-setup-declarative-routing",
+          "files": {
+            "SKILL.md": "3a52fc5663cf37d68b6e096ef3e59f5056a01e9151b64cdf0728672a13398953"
+          }
+        },
+        {
+          "name": "dart-add-unit-test",
+          "source_path": "skills/dart-add-unit-test",
+          "files": {
+            "SKILL.md": "02428fa20c2cb90afcaf17a52c559641b85eb04f2765a54da2bc72ca858c1fce"
+          }
+        },
+        {
+          "name": "dart-run-static-analysis",
+          "source_path": "skills/dart-run-static-analysis",
+          "files": {
+            "SKILL.md": "5e41a03011647bcaee182ddc5d4471122f45f93fec6570480c237077e7f9438c"
+          }
+        },
+        {
+          "name": "dart-resolve-package-conflicts",
+          "source_path": "skills/dart-resolve-package-conflicts",
+          "files": {
+            "SKILL.md": "967093ae2bca2784ba6a104dba3821ad809b399ca22071e9afc512915f60fa0a"
+          }
+        }
+      ]
+    }
+  ],
+  "not_installed": [
+    {
+      "package": "freezed",
+      "reason": "No maintainer-published skill found. Reviewed community skill contains outdated Freezed 3.x guidance; consult current official docs.",
+      "documentation": "https://pub.dev/packages/freezed"
+    }
+  ]
+}
