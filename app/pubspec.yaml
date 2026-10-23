@@ -1,0 +1,19 @@
+name: stillsteep
+description: A macOS app for practicing programming by hand.
+publish_to: 'none'
+version: 0.1.0+1
+resolution: workspace
+
+environment:
+  sdk: ^3.13.5
+  flutter: '>=3.47.7'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  material_ui: ^1.8.0
+  stillsteep_application: ^0.1.0
+  stillsteep_infrastructure: ^0.1.0
+
+flutter:
+  uses-material-design: true

@@ -1,0 +1,8 @@
+name: stillsteep_application
+description: Application use cases and interfaces for Stillsteep.
+publish_to: none
+version: 0.1.0
+resolution: workspace
+
+environment:
+  sdk: ^3.13.5
