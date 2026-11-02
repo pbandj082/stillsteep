@@ -11,7 +11,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  material_ui: ^1.8.0
+  material_ui: ^1.9.0
   stillsteep_application: ^0.1.0
   stillsteep_infrastructure: ^0.1.0
 
